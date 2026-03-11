@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ノンフライヤー変換アプリ</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f7f9fc;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            padding: 30px;
+            max-width: 400px;
+            width: 100%;
+        }
+        h2 {
+            text-align: center;
+            color: #ff6b6b;
+            margin-top: 0;
+            font-size: 1.5em;
+        }
+        label {
+            display: block;
+            margin-top: 15px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        select, input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        .time-inputs {
+            display: flex;
+            gap: 10px;
+        }
+        /* モード切替用のスタイル（3項目用に微調整） */
+        .mode-switch {
+            display: flex;
+            gap: 5px;
+            margin-top: 15px;
+            margin-bottom: 20px;
+        }
+        .mode-switch input[type="radio"] {
+            display: none;
+        }
+        .mode-switch label {
+            margin-top: 0;
+            flex: 1;
+            text-align: center;
+            padding: 10px 5px;
+            background-color: #f0f0f0;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s, color 0.2s;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+        .mode-switch input[type="radio"]:checked + label {
+            background-color: #ff6b6b;
+            color: white;
+        }
+        button {
+            margin-top: 25px;
+            width: 100%;
+            background-color: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #ff4757;
+        }
+        #resultArea {
+            margin-top: 25px;
+            padding: 20px;
+            background-color: #f1f8ff;
+            border-left: 5px solid #4facfe;
+            border-radius: 6px;
+            display: none;
+        }
+        .result-title {
+            font-weight: bold;
+            color: #007bb5;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+        .result-temp-time {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #d35400;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .tips {
+            font-size: 0.9em;
+            color: #555;
+            line-height: 1.5;
+        }
+        ul {
+            padding-left: 20px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🍤 ノンフライヤー変換</h2>
+    
+    <div class="mode-switch">
+        <input type="radio" id="modeMicrowave" name="calcMode" value="microwave" checked onchange="toggleInputs()">
+        <label for="modeMicrowave">レンジ</label>
+        
+        <input type="radio" id="modeDeepFry" name="calcMode" value="deepfry" onchange="toggleInputs()">
+        <label for="modeDeepFry">油で揚げる</label>
+
+        <input type="radio" id="modeOven" name="calcMode" value="oven" onchange="toggleInputs()">
+        <label for="modeOven">オーブン</label>
+    </div>
+
+    <div id="microwaveArea">
+        <label for="foodType">食品の種類</label>
+        <select id="foodType">
+            <option value="fried">揚げ物（唐揚げ、コロッケ、ポテトなど）</option>
+            <option value="thick">厚みがある・焦げやすい（グラタンなど）</option>
+            <option value="general" selected>その他・一般的な食品</option>
+        </select>
+
+        <label for="watt">電子レンジのワット数 (W)</label>
+        <select id="watt">
+            <option value="500">500W</option>
+            <option value="600" selected>600W</option>
+            <option value="1000">1000W</option>
+        </select>
+
+        <label>電子レンジの加熱時間</label>
+        <div class="time-inputs">
+            <input type="number" id="mwMinutes" placeholder="分" min="0" value="3">
+            <input type="number" id="mwSeconds" placeholder="秒" min="0" max="59" value="0">
+        </div>
+    </div>
+
+    <div id="deepFryArea" style="display: none;">
+        <label for="fryTemp">レシピの油の温度</label>
+        <select id="fryTemp">
+            <option value="160">160℃ (低温・じっくり)</option>
+            <option value="170">170℃ (中温・標準的)</option>
+            <option value="180" selected>180℃ (中温・標準的)</option>
+            <option value="190">190℃ (高温・カラッと)</option>
+            <option value="200">200℃ (高温・短時間)</option>
+        </select>
+
+        <label>レシピの揚げる時間</label>
+        <div class="time-inputs">
+            <input type="number" id="fryMinutes" placeholder="分" min="1" value="5">
+        </div>
+    </div>
+
+    <div id="ovenArea" style="display: none;">
+        <label for="ovenTemp">レシピのオーブン温度 (℃)</label>
+        <input type="number" id="ovenTemp" placeholder="例: 200" value="200" step="10">
+
+        <label>レシピのオーブン加熱時間</label>
+        <div class="time-inputs">
+            <input type="number" id="ovenMinutes" placeholder="分" min="1" value="20">
+        </div>
+    </div>
+
+    <button onclick="calculateAirFryer()">変換する！</button>
+
+    <div id="resultArea">
+        <div class="result-title">💡 おすすめの設定目安</div>
+        <div class="result-temp-time" id="resultText"></div>
+        <div class="tips" id="tipsText"></div>
+    </div>
+</div>
+
+<script>
+    function toggleInputs() {
+        const mode = document.querySelector('input[name="calcMode"]:checked').value;
+        
+        document.getElementById('microwaveArea').style.display = 'none';
+        document.getElementById('deepFryArea').style.display = 'none';
+        document.getElementById('ovenArea').style.display = 'none';
+
+        if (mode === 'microwave') {
+            document.getElementById('microwaveArea').style.display = 'block';
+        } else if (mode === 'deepfry') {
+            document.getElementById('deepFryArea').style.display = 'block';
+        } else if (mode === 'oven') {
+            document.getElementById('ovenArea').style.display = 'block';
+        }
+        
+        document.getElementById('resultArea').style.display = 'none';
+    }
+
+    function calculateAirFryer() {
+        const mode = document.querySelector('input[name="calcMode"]:checked').value;
+        let resultText = "";
+        let advice = "";
+
+        if (mode === 'microwave') {
+            const foodType = document.getElementById('foodType').value;
+            const watt = parseInt(document.getElementById('watt').value);
+            const minutes = parseInt(document.getElementById('mwMinutes').value) || 0;
+            const seconds = parseInt(document.getElementById('mwSeconds').value) || 0;
+
+            if (minutes === 0 && seconds === 0) {
+                alert("加熱時間を入力してください。");
+                return;
+            }
+
+            const totalSeconds = (minutes * 60) + seconds;
+            const base600WSeconds = totalSeconds * (watt / 600);
+            const base600WMinutes = base600WSeconds / 60;
+
+            let tempMin, tempMax, timeMultiplierMin, timeMultiplierMax;
+
+            if (foodType === 'fried') {
+                tempMin = 190; tempMax = 200;
+                timeMultiplierMin = 3; timeMultiplierMax = 4;
+                advice = "<ul><li>途中で一度バスケットを振って、全体に熱風を当ててください。</li><li>カリッとさせたい場合は、最後に1分ほど追加加熱してください。</li></ul>";
+            } else if (foodType === 'thick') {
+                tempMin = 160; tempMax = 170;
+                timeMultiplierMin = 3.5; timeMultiplierMax = 4.5;
+                advice = "<ul><li>中まで火を通すため、少し低めの温度でじっくり加熱します。</li><li>表面が焦げそうな場合は、途中でアルミホイルを軽く被せてください。</li></ul>";
+            } else {
+                tempMin = 180; tempMax = 190;
+                timeMultiplierMin = 3; timeMultiplierMax = 4;
+                advice = "<ul><li>途中で一度裏返すか、バスケットを振るとムラなく仕上がります。</li><li>油で揚げていない食品には、スプレーオイルを軽くかけると美味しくなります。</li></ul>";
+            }
+
+            let afTimeMin = Math.floor(base600WMinutes * timeMultiplierMin);
+            let afTimeMax = Math.ceil(base600WMinutes * timeMultiplierMax);
+            
+            if (afTimeMin < 3) afTimeMin = 3;
+            if (afTimeMax <= afTimeMin) afTimeMax = afTimeMin + 2;
+
+            resultText = `${tempMin}℃〜${tempMax}℃<br>約 ${afTimeMin}分 〜 ${afTimeMax}分`;
+
+        } else if (mode === 'deepfry') {
+            const fryTemp = parseInt(document.getElementById('fryTemp').value);
+            const fryMinutes = parseInt(document.getElementById('fryMinutes').value) || 0;
+
+            if (fryMinutes === 0) {
+                alert("揚げる時間を入力してください。");
+                return;
+            }
+
+            let afTempMin = fryTemp;
+            let afTempMax = Math.min(200, fryTemp + 10);
+            let afTimeMin = Math.floor(fryMinutes * 1.5);
+            let afTimeMax = Math.ceil(fryMinutes * 2.0);
+
+            resultText = `${afTempMin}℃〜${afTempMax}℃<br>約 ${afTimeMin}分 〜 ${afTimeMax}分`;
+            advice = "<ul><li><b>【重要】</b>ノンフライヤーを事前に同じ温度で予熱しておいてください。</li><li>生パン粉などの衣をつける場合は、<b>表面にスプレーオイル</b>をかけないと、綺麗なきつね色になりません。</li><li>途中で一度ひっくり返すと、両面がサクッと仕上がります。</li></ul>";
+
+        } else if (mode === 'oven') {
+            // --- オーブンレシピからの変換ロジック ---
+            const ovenTemp = parseInt(document.getElementById('ovenTemp').value);
+            const ovenMinutes = parseInt(document.getElementById('ovenMinutes').value) || 0;
+
+            if (ovenMinutes === 0 || isNaN(ovenTemp)) {
+                alert("温度と時間を正しく入力してください。");
+                return;
+            }
+
+            // 温度設定: オーブンより10〜20℃低くする
+            let afTempMin = ovenTemp - 20;
+            let afTempMax = ovenTemp - 10;
+            
+            // 下限温度のセーフガード（極端に低くならないように）
+            if (afTempMin < 100) afTempMin = 100;
+            if (afTempMax < 110) afTempMax = 110;
+
+            // 時間設定: オーブンの約20〜25%引き（0.75〜0.8倍）
+            let afTimeMin = Math.floor(ovenMinutes * 0.75);
+            let afTimeMax = Math.ceil(ovenMinutes * 0.8);
+
+            // 時間が短くなりすぎないように補正
+            if (afTimeMin < 1) afTimeMin = 1;
+            if (afTimeMax <= afTimeMin) afTimeMax = afTimeMin + 1;
+
+            resultText = `${afTempMin}℃〜${afTempMax}℃<br>約 ${afTimeMin}分 〜 ${afTimeMax}分`;
+            advice = "<ul><li>ノンフライヤーは熱風の循環が強いため、オーブンより<b>「温度は低め、時間は短め」</b>が基本です。</li><li>表面が焦げやすいので、残り時間が1/3になった頃に一度焼け具合を確認してください。</li><li>お菓子作りなどで焦がしたくない場合は、アルミホイルを軽く被せると安心です。</li></ul>";
+        }
+
+        document.getElementById('resultText').innerHTML = resultText;
+        document.getElementById('tipsText').innerHTML = advice;
+        document.getElementById('resultArea').style.display = 'block';
+    }
+</script>
+
+</body>
+</html>
