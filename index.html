@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ノンフライヤー変換ツール</title>
+    <title>COSORI ノンフライヤーミニ専用 変換アプリ</title>
     <style>
         body {
             font-family: 'Helvetica Neue', Arial, sans-serif;
@@ -24,9 +24,16 @@
         }
         h2 {
             text-align: center;
-            color: #ff6b6b;
+            color: #4a90e2; /* COSORIのイメージに合わせて少しブルー系に */
             margin-top: 0;
             font-size: 1.5em;
+        }
+        .subtitle {
+            text-align: center;
+            color: #777;
+            font-size: 0.85em;
+            margin-top: -10px;
+            margin-bottom: 15px;
         }
         label {
             display: block;
@@ -47,7 +54,6 @@
             display: flex;
             gap: 10px;
         }
-        /* モード切替用のスタイル（3項目用に微調整） */
         .mode-switch {
             display: flex;
             gap: 5px;
@@ -70,13 +76,13 @@
             font-weight: bold;
         }
         .mode-switch input[type="radio"]:checked + label {
-            background-color: #ff6b6b;
+            background-color: #4a90e2;
             color: white;
         }
         button {
             margin-top: 25px;
             width: 100%;
-            background-color: #ff6b6b;
+            background-color: #4a90e2;
             color: white;
             border: none;
             padding: 12px;
@@ -87,13 +93,13 @@
             transition: background-color 0.3s;
         }
         button:hover {
-            background-color: #ff4757;
+            background-color: #357abd;
         }
         #resultArea {
             margin-top: 25px;
             padding: 20px;
             background-color: #f1f8ff;
-            border-left: 5px solid #4facfe;
+            border-left: 5px solid #4a90e2;
             border-radius: 6px;
             display: none;
         }
@@ -124,7 +130,8 @@
 <body>
 
 <div class="container">
-    <h2>🍤 ノンフライヤー変換</h2>
+    <h2>🍤 変換アプリ</h2>
+    <div class="subtitle">COSORI LITE 2L 専用設定 (75-205℃ / 1-60分)</div>
     
     <div class="mode-switch">
         <input type="radio" id="modeMicrowave" name="calcMode" value="microwave" checked onchange="toggleInputs()">
@@ -185,7 +192,7 @@
         </div>
     </div>
 
-    <button onclick="calculateAirFryer()">変換する！</button>
+    <button onclick="calculateAirFryer()">COSORI用に変換する！</button>
 
     <div id="resultArea">
         <div class="result-title">💡 おすすめの設定目安</div>
@@ -217,6 +224,12 @@
         const mode = document.querySelector('input[name="calcMode"]:checked').value;
         let resultText = "";
         let advice = "";
+        
+        // 最終的な温度・時間を格納する変数
+        let finalTempMin = 0;
+        let finalTempMax = 0;
+        let finalTimeMin = 0;
+        let finalTimeMax = 0;
 
         if (mode === 'microwave') {
             const foodType = document.getElementById('foodType').value;
@@ -233,29 +246,27 @@
             const base600WSeconds = totalSeconds * (watt / 600);
             const base600WMinutes = base600WSeconds / 60;
 
-            let tempMin, tempMax, timeMultiplierMin, timeMultiplierMax;
+            let timeMultiplierMin, timeMultiplierMax;
 
             if (foodType === 'fried') {
-                tempMin = 190; tempMax = 200;
+                finalTempMin = 190; finalTempMax = 200;
                 timeMultiplierMin = 3; timeMultiplierMax = 4;
                 advice = "<ul><li>途中で一度バスケットを振って、全体に熱風を当ててください。</li><li>カリッとさせたい場合は、最後に1分ほど追加加熱してください。</li></ul>";
             } else if (foodType === 'thick') {
-                tempMin = 160; tempMax = 170;
+                finalTempMin = 160; finalTempMax = 170;
                 timeMultiplierMin = 3.5; timeMultiplierMax = 4.5;
                 advice = "<ul><li>中まで火を通すため、少し低めの温度でじっくり加熱します。</li><li>表面が焦げそうな場合は、途中でアルミホイルを軽く被せてください。</li></ul>";
             } else {
-                tempMin = 180; tempMax = 190;
+                finalTempMin = 180; finalTempMax = 190;
                 timeMultiplierMin = 3; timeMultiplierMax = 4;
                 advice = "<ul><li>途中で一度裏返すか、バスケットを振るとムラなく仕上がります。</li><li>油で揚げていない食品には、スプレーオイルを軽くかけると美味しくなります。</li></ul>";
             }
 
-            let afTimeMin = Math.floor(base600WMinutes * timeMultiplierMin);
-            let afTimeMax = Math.ceil(base600WMinutes * timeMultiplierMax);
+            finalTimeMin = Math.floor(base600WMinutes * timeMultiplierMin);
+            finalTimeMax = Math.ceil(base600WMinutes * timeMultiplierMax);
             
-            if (afTimeMin < 3) afTimeMin = 3;
-            if (afTimeMax <= afTimeMin) afTimeMax = afTimeMin + 2;
-
-            resultText = `${tempMin}℃〜${tempMax}℃<br>約 ${afTimeMin}分 〜 ${afTimeMax}分`;
+            if (finalTimeMin < 3) finalTimeMin = 3;
+            if (finalTimeMax <= finalTimeMin) finalTimeMax = finalTimeMin + 2;
 
         } else if (mode === 'deepfry') {
             const fryTemp = parseInt(document.getElementById('fryTemp').value);
@@ -266,16 +277,14 @@
                 return;
             }
 
-            let afTempMin = fryTemp;
-            let afTempMax = Math.min(200, fryTemp + 10);
-            let afTimeMin = Math.floor(fryMinutes * 1.5);
-            let afTimeMax = Math.ceil(fryMinutes * 2.0);
+            finalTempMin = fryTemp;
+            finalTempMax = fryTemp + 10;
+            finalTimeMin = Math.floor(fryMinutes * 1.5);
+            finalTimeMax = Math.ceil(fryMinutes * 2.0);
 
-            resultText = `${afTempMin}℃〜${afTempMax}℃<br>約 ${afTimeMin}分 〜 ${afTimeMax}分`;
             advice = "<ul><li><b>【重要】</b>ノンフライヤーを事前に同じ温度で予熱しておいてください。</li><li>生パン粉などの衣をつける場合は、<b>表面にスプレーオイル</b>をかけないと、綺麗なきつね色になりません。</li><li>途中で一度ひっくり返すと、両面がサクッと仕上がります。</li></ul>";
 
         } else if (mode === 'oven') {
-            // --- オーブンレシピからの変換ロジック ---
             const ovenTemp = parseInt(document.getElementById('ovenTemp').value);
             const ovenMinutes = parseInt(document.getElementById('ovenMinutes').value) || 0;
 
@@ -284,24 +293,50 @@
                 return;
             }
 
-            // 温度設定: オーブンより10〜20℃低くする
-            let afTempMin = ovenTemp - 20;
-            let afTempMax = ovenTemp - 10;
+            finalTempMin = ovenTemp - 20;
+            finalTempMax = ovenTemp - 10;
             
-            // 下限温度のセーフガード（極端に低くならないように）
-            if (afTempMin < 100) afTempMin = 100;
-            if (afTempMax < 110) afTempMax = 110;
+            finalTimeMin = Math.floor(ovenMinutes * 0.75);
+            finalTimeMax = Math.ceil(ovenMinutes * 0.8);
 
-            // 時間設定: オーブンの約20〜25%引き（0.75〜0.8倍）
-            let afTimeMin = Math.floor(ovenMinutes * 0.75);
-            let afTimeMax = Math.ceil(ovenMinutes * 0.8);
-
-            // 時間が短くなりすぎないように補正
-            if (afTimeMin < 1) afTimeMin = 1;
-            if (afTimeMax <= afTimeMin) afTimeMax = afTimeMin + 1;
-
-            resultText = `${afTempMin}℃〜${afTempMax}℃<br>約 ${afTimeMin}分 〜 ${afTimeMax}分`;
             advice = "<ul><li>ノンフライヤーは熱風の循環が強いため、オーブンより<b>「温度は低め、時間は短め」</b>が基本です。</li><li>表面が焦げやすいので、残り時間が1/3になった頃に一度焼け具合を確認してください。</li><li>お菓子作りなどで焦がしたくない場合は、アルミホイルを軽く被せると安心です。</li></ul>";
+        }
+
+        // ==========================================
+        // COSORI LITE 2L 専用リミッター (75〜205℃ / 1〜60分)
+        // ==========================================
+        const HARDWARE_MIN_TEMP = 75;
+        const HARDWARE_MAX_TEMP = 205;
+        const HARDWARE_MIN_TIME = 1;
+        const HARDWARE_MAX_TIME = 60;
+
+        finalTempMin = Math.max(HARDWARE_MIN_TEMP, Math.min(HARDWARE_MAX_TEMP, finalTempMin));
+        finalTempMax = Math.max(HARDWARE_MIN_TEMP, Math.min(HARDWARE_MAX_TEMP, finalTempMax));
+        finalTimeMin = Math.max(HARDWARE_MIN_TIME, Math.min(HARDWARE_MAX_TIME, finalTimeMin));
+        finalTimeMax = Math.max(HARDWARE_MIN_TIME, Math.min(HARDWARE_MAX_TIME, finalTimeMax));
+
+        // 上限と下限が逆転したり同じになった場合の補正
+        if (finalTempMax < finalTempMin) finalTempMax = finalTempMin;
+        if (finalTimeMax <= finalTimeMin) {
+            finalTimeMax = finalTimeMin + 1;
+            // 補正後60分を超えたら戻す
+            if (finalTimeMax > HARDWARE_MAX_TIME) {
+                finalTimeMax = HARDWARE_MAX_TIME;
+                finalTimeMin = HARDWARE_MAX_TIME - 1;
+            }
+        }
+
+        // --- 結果テキストの組み立て ---
+        if (finalTempMin === finalTempMax) {
+            resultText = `${finalTempMin}℃<br>`;
+        } else {
+            resultText = `${finalTempMin}℃〜${finalTempMax}℃<br>`;
+        }
+
+        if (finalTimeMin === finalTimeMax) {
+            resultText += `約 ${finalTimeMin}分`;
+        } else {
+            resultText += `約 ${finalTimeMin}分 〜 ${finalTimeMax}分`;
         }
 
         document.getElementById('resultText').innerHTML = resultText;
